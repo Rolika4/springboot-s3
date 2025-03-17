@@ -20,7 +20,7 @@ public class S3Controller {
         return ResponseEntity.ok(new ResponseData(s3Service.getData()));
     }
 
-    private record ResponseData(String fileContent) {
+    private record ResponseData(String content) {
     }
 }
 
