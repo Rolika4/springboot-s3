@@ -17,7 +17,7 @@ public class S3Controller {
 
     @GetMapping("/")
     ResponseEntity<ResponseData> getDate() {
-        return ResponseEntity.ok(new ResponseData(s3Service.getData()));
+        return ResponseEntity.ok(new ResponseData(s3Service.readFile()));
     }
 
     private record ResponseData(String content) {
