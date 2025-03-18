@@ -16,15 +16,15 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 @Slf4j
-public class AwsService {
+public class S3Service {
     private final S3Client s3Client;
     private final String bucket;
     private final String fileName;
     private final StsClient stsClient;
 
-    public AwsService(S3Client s3Client,
-                      @Value("${custom.aws.bucket}") String bucket,
-                      @Value("${custom.aws.key}") String fileName, StsClient stsClient) {
+    public S3Service (S3Client s3Client,
+                      @Value("${bucket.name}") String bucket,
+                      @Value("${file.name}") String fileName, StsClient stsClient) {
         this.s3Client = s3Client;
         this.bucket = bucket;
         this.fileName = fileName;
