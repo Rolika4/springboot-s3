@@ -1,45 +1,68 @@
 package com.epam.edp.demo;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.model.GetCallerIdentityRequest;
+import software.amazon.awssdk.services.sts.model.GetCallerIdentityResponse;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
 
 @Service
-public class S3Service {
-
-    private final String bucketName;
-    private final String fileName;
+@Slf4j
+public class AwsService {
     private final S3Client s3Client;
+    private final String bucket;
+    private final String fileName;
+    private final StsClient stsClient;
 
-    public S3Service(
-            @Value("${bucket.name}") String bucketName,
-            @Value("${file.name}") String fileName,
-            @Autowired S3Client s3Client) {
-        this.bucketName = bucketName;
-        this.fileName = fileName;
+    public AwsService(S3Client s3Client,
+                      @Value("${custom.aws.bucket}") String bucket,
+                      @Value("${custom.aws.key}") String fileName, StsClient stsClient) {
         this.s3Client = s3Client;
+        this.bucket = bucket;
+        this.fileName = fileName;
+        this.stsClient = stsClient;
     }
 
-    public String getData() {
-        ResponseInputStream<GetObjectResponse> s3ObjectResponse = s3Client.getObject(
-                GetObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(fileName)
-                        .build());
-
-        return new BufferedReader(new InputStreamReader(s3ObjectResponse, StandardCharsets.UTF_8))
-                .lines()
-                .collect(Collectors.joining("\n"));
+    public String readFile() {
+        String content = readFile(bucket, fileName);
+        log.info("Content='{}' form bucket='{}', key='{}'", content, bucket, fileName);
+        return content;
     }
 
+    private String readFile(String bucket, String fileName) {
+        // additional logging
+        GetCallerIdentityResponse identity = stsClient.getCallerIdentity(
+                GetCallerIdentityRequest.builder().build()
+        );
+        log.info("Going to read file {} from {} using AWS Role: ARN={}, Account={}, UserId={}",
+                fileName,
+                bucket,
+                identity.arn(),
+                identity.account(),
+                identity.userId());
+
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(fileName)
+                .build();
+
+        ResponseInputStream<GetObjectResponse> responseInputStream = s3Client.getObject(getObjectRequest);
+
+        try {
+            return new String(responseInputStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("Error reading bucket={}, fileName={}", bucket, fileName, e);
+            throw new RuntimeException(e);
+        }
+
+    }
 }
-
+ 
