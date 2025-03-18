@@ -18,11 +18,9 @@ public class S3Config {
 	
     @Bean
     S3Client s3Client() {
-		WebIdentityTokenFileCredentialsProvider credentialsProvider = WebIdentityTokenFileCredentialsProvider.create();
-        
         return S3Client.builder()
                 .region(Region.of(region))
-                .credentialsProvider(credentialsProvider())
+                .credentialsProvider(WebIdentityTokenFileCredentialsProvider.create())
                 .build();
     }
 }
